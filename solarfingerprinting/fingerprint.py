@@ -18,8 +18,8 @@ FUNCTIONS = {
     'gaus_lin_mixture': g2
 }
 
-def fingerprint(data, function='gauss_quad', return_fit=True, return_rmse=True,
-                residuals=None, reweight=False, normalize=True):
+def fingerprint(data, function='gauss_quad', residuals=None, reweight=False,
+                normalize=True):
     max_val = np.max(data)
     num_meas_per_hour = len(data) / 24
     x = np.arange(0, 24, 1. / num_meas_per_hour)
@@ -35,22 +35,18 @@ def fingerprint(data, function='gauss_quad', return_fit=True, return_rmse=True,
                                                sigma=residuals[1:],
                                                maxfev=100000)
     except RuntimeError:
-        optimal_params = None
+        encoding = None
         fit = None
-        rmse = None
     else:
-        fit = f(x, *optimal_params) * max_val
+        fit = np.zeros_like(x)
+        fit[1:] = f(x[1:], *optimal_params) * max_val
         residual = data - fit
         rmse = np.linalg.norm(residual) / np.sqrt(len(data))
+        encoding = np.r_[optimal_params, rmse]
         if reweight:
-            optimal_params, fit, rmse = fingerprint(data, function=function,
+            encoding, fit = fingerprint(data, function=function,
                                                     residuals=residual + 1e-3,
                                                     normalize=False)
         if normalize and function == 'gauss_quad':
-            optimal_params = forward_transform(optimal_params)
-    result = [optimal_params]
-    if return_fit == True:
-        result.append(fit)
-    if return_rmse == True:
-        result.append(rmse)
-    return optimal_params, fit, rmse
+            encoding = forward_transform(encoding)
+    return encoding, fit
