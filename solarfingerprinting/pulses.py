@@ -11,6 +11,8 @@ PV power signals.
 import numpy as np
 from scipy.special import erfc
 
+MAX_EXP = np.log(np.finfo(np.float).max)
+
 def gaussian(x, loc, scale, beta, amplitude):
     x = x.astype(np.float)
     a_p = np.exp(amplitude)
@@ -48,9 +50,20 @@ def gquad(x, loc, scale, beta, a, b, c):
     a_p = a / 10
     b_p = b / 10 - 2.4 * a
     c_p = c + 14 * a - 1.2 * b
-    t1 = np.exp(a_p * x ** 2 + b_p * x + c_p)
-    t2 = np.exp(-(np.abs(x - loc_p) / scale_p) ** beta_p)
-    return t1 * t2
+    ex1 = a_p * x ** 2 + b_p * x + c_p
+    ex2 = -(np.abs(x - loc_p) / scale_p) ** beta_p
+    if np.alltrue(ex1 < MAX_EXP) and np.alltrue(ex2 < MAX_EXP):
+        t1 = np.exp(ex1)
+        t2 = np.exp(ex2)
+        return t1 * t2
+    else:
+        result = np.finfo(np.float).max * np.ones_like(x)
+        mask = np.logical_and(
+            ex1 < MAX_EXP,
+            ex2 < MAX_EXP
+        )
+        result[mask] = np.exp(ex1[mask]) * np.exp(ex2[mask])
+        return result
 
 def log_gquad(x, loc, scale, beta, a, b, c):
     x = x.astype(np.float)
