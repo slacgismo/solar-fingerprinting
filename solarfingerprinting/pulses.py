@@ -52,6 +52,22 @@ def gquad(x, loc, scale, beta, a, b, c):
     t2 = np.exp(-(np.abs(x - loc_p) / scale_p) ** beta_p)
     return t1 * t2
 
+def log_gquad(x, loc, scale, beta, a, b, c):
+    x = x.astype(np.float)
+    loc_p = loc + 12
+    scale_p = scale + 4
+    beta_p =  3 * beta + 6
+    # The following three parameters control the quadratic functions. The "raw"
+    # parameters are highly correlated, so we sequentially orthogonalize the
+    # dimensions. The magnitudes are selected based on values that successfully
+    # orthagonalized a randomized set of daily signals.
+    a_p = a / 10
+    b_p = b / 10 - 2.4 * a
+    c_p = c + 14 * a - 1.2 * b
+    t1 = (a_p * x ** 2 + b_p * x + c_p)
+    t2 = (-(np.abs(x - loc_p) / scale_p) ** beta_p)
+    return t1 + t2
+
 def gquad2(x, alpha, beta, a, b, c, k):
     x_tilde = x - len(x) / 2
     expr = alpha * x_tilde ** beta + a * x_tilde ** 2 + b * x_tilde + c
