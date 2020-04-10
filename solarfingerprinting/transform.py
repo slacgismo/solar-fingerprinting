@@ -22,9 +22,9 @@ QT.references_ = REFERENCES
 def forward_transform(data):
     data = np.asarray(data)
     try:
-        data = data.reshape(-1, 6)
+        data = data.reshape(-1, 7)
     except ValueError:
-        print('Shape of the data should be N by 6 (six fit parameters)')
+        print('Shape of the data should be N by 7 (six fit parameters plus error)')
         return
     transformed = QT.transform(data)
     if transformed.shape[0] == 1:
@@ -34,9 +34,9 @@ def forward_transform(data):
 def inverse_transform(data):
     data = np.asarray(data)
     try:
-        data = data.reshape(-1, 6)
+        data = data.reshape(-1, 7)
     except ValueError:
-        print('Shape of the data should be N by 6 (six fingerprint parameters)')
+        print('Shape of the data should be N by 7 (six fingerprint parameters plus error)')
         return
     transformed = QT.inverse_transform(data)
     if transformed.shape[0] == 1:
