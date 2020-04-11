@@ -85,7 +85,7 @@ class StudyHandler():
             ax[1, 0].legend()
             ax[1, 0].set_xlabel('time (5-minute increments)')
             ax[1, 0].set_ylabel('power')
-            ax[1, 0].set_title('signals, day number {}'at(index))
+            ax[1, 0].set_title('signals, day number {}'.format(index))
             ax[1, 0].set_ylim(-0.05 * max_val, 1.05 * max_val)
 
             popt_t = self.encoding[index]
