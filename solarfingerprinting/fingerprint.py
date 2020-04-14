@@ -41,10 +41,11 @@ def fingerprint(data, function='gauss_quad', residuals=None, reweight=False,
         fit = np.zeros_like(x)
         fit[1:] = f(x[1:], *optimal_params) * max_val
         residual = data - fit
-        # Using L-inf norm on normalized error rather than RMSE
+        # Using mean absolute error on normalized residual rather than RMSE
         # rmse = np.linalg.norm(residual / max_val) / np.sqrt(len(data))
-        inf_error = np.max(np.abs(residual / max_val))
-        encoding = np.r_[optimal_params, inf_error]
+        # inf_error = np.max(np.abs(residual / max_val))
+        mae = np.sum(np.abs(residual / max_val)) / len(data)
+        encoding = np.r_[optimal_params, mae]
         if reweight:
             encoding, fit = fingerprint(data, function=function,
                                         residuals=(residual + 1e-3),
