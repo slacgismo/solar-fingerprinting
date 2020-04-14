@@ -11,7 +11,7 @@ from solarfingerprinting.fingerprint import fingerprint
 from solarfingerprinting.utilities import progress
 import matplotlib.pyplot as plt
 import seaborn as sns
-from ipywidgets import interact, interact_manual, interactive, fixed
+from ipywidgets import interactive, fixed
 from IPython.display import display
 
 class StudyHandler():
