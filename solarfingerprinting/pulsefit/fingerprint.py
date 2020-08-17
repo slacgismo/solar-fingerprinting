@@ -6,8 +6,8 @@ This module contains the fingerprinting algorithm for daily PV power signals
 import numpy as np
 from scipy import optimize
 from inspect import signature
-from solarfingerprinting.pulses import gaussian, gpow, glin, gquad, gatan, g2
-from solarfingerprinting.transform import forward_transform
+from solarfingerprinting.pulsefit.pulses import gaussian, gpow, glin, gquad, gatan, g2
+from solarfingerprinting.pulsefit.transform import forward_transform
 
 FUNCTIONS = {
     'gauss': gaussian,

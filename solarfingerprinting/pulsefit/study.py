@@ -6,8 +6,7 @@ study on a data set with more than one day of data.
 
 from time import time
 import numpy as np
-from functools import partial, update_wrapper
-from solarfingerprinting.fingerprint import fingerprint
+from solarfingerprinting.pulsefit.fingerprint import fingerprint
 from solarfingerprinting.utilities import progress
 import matplotlib.pyplot as plt
 import seaborn as sns
