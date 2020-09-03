@@ -1,3 +1,4 @@
 from solarfingerprinting.double_dictionary import make_dictionaries
 from solarfingerprinting.preprocessing import batch_process
 from solarfingerprinting.fit_basis import estimate_parameters
+from solarfingerprinting.cluster import ClusterAnalysis
