@@ -1,4 +1,7 @@
-"""
+"""Dictionary Generation Module
+
+This module contains functions for generating two incomplete orthonormal basis
+matrices.
 
 """
 
@@ -10,14 +13,49 @@ filepath = __file__.split('/')[:-1]
 ENVELOPE = np.load(os.path.join('/', *filepath, 'fixtures/envelope.npy'))
 WVLT = pywt.Wavelet('sym2').wavefun
 
-def make_dictionaries(envelope=ENVELOPE, max_n=5, wavefun=WVLT, J=10,
+def make_dictionaries(envelope=None, max_n=5, wavefun=WVLT, J=10,
                       normalize=True, reduce_level=None):
+    """
+    Convenience function for generating both the smooth dictionary "W1" and the
+    sparse wavelet dictionary "W2".
+
+    :param envelope: The reference signal shape
+    :param max_n: Order of sines and cosines to include, produces 2*n vectors
+    :param wavefun: A wavelet function object from PyWavelets
+    :param J: Number of measurements after resampling: 2 ** J
+    :param normalize: If true, enforce orthonormality of basis matrices
+    :param reduce_level: Number of hierarchical levels to remove from wavelet basis
+    :return: Two basis metrices, W1 and W2
+    """
+    if envelope is None:
+        envelope = ENVELOPE
     W1 = make_smooth_basis(envelope, max_n=max_n, normalize=normalize)
     W2 = make_wavelet_basis(wavefun, J=J, normalize=normalize,
                             reduce_level=reduce_level)
     return W1, W2
 
 def make_wavelet_basis(wavefun=WVLT, J=10, normalize=True, reduce_level=None):
+    """
+    Function to construct an orthonormal wavelet basis matrix from PyWavelets
+    wavelet function object. Any discrete wavelet function from this package
+    may be used. Dimension of the domain is n = (2 ** J). If reduce_level is
+    not used, this returns a complete orthonormal basis, a matrix
+    of size (n ⨉ n). If reduce_level is used, then the levels corresponding to
+    the smallest time scales are removed. For instance, if J=10 and
+    reduce_level=1, then a (1024 x 512) matrix is returned. J=10 and
+    reduce_level=2, than a (1024 X 256) matrix is returned.
+
+    The vectors produced by PyWavelets are approximations, and Gramm-Schmitt
+    may be used to "polish" the basis and make it truly orthonormal by setting
+    normalize=True.
+
+
+    :param wavefun: A wavelet function object from PyWavelets
+    :param J: Number of measurements after resampling: 2 ** J
+    :param normalize: If true, enforce orthonormality of basis matrix
+    :param reduce_level: Number of hierarchical levels to remove from wavelet basis
+    :return: Wavelet basis matrix
+    """
     n = 2 ** J
     W = np.zeros((n, n))
     column_ix = 0
@@ -63,7 +101,7 @@ def make_wavelet_basis(wavefun=WVLT, J=10, normalize=True, reduce_level=None):
         W = q
         W *= np.sign(np.diag(r))
         # Original wavelets are very sparse, but QR decomposition breaks the
-        # sparsity. Sparsity helps speed up algorithm by orders of magnitude, \
+        # sparsity. Sparsity helps speed up algorithm by orders of magnitude,
         # so we reintroduce the sparsity here
         W[np.abs(W) <= 1e-3] = 0
     # normvals = np.linalg.norm(W, axis=0)
@@ -71,6 +109,16 @@ def make_wavelet_basis(wavefun=WVLT, J=10, normalize=True, reduce_level=None):
     return W
 
 def make_smooth_basis(envelope=ENVELOPE, max_n=5, normalize=True):
+    """
+    Function to make a smooth, orthonormal basis, generated as sin and cos
+    functions windowed by a parent "envelope". The parent envelope is typically
+    the "average" response of a system
+
+    :param envelope: The reference signal shape
+    :param max_n: Order of sines and cosines to include, produces 2*n vectors
+    :param normalize: If true, enforce orthonormality of basis matrix
+    :return: smooth, orthonormal basis matrix
+    """
     W = [envelope]
     n = len(envelope)
     xs = np.linspace(0, n, n)
