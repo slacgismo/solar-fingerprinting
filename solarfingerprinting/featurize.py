@@ -28,7 +28,18 @@ def time_domain_features(fit_parameters, basis_matrix, levels=3,
 def freq_domain_features(fit_parameters, stat_funcs=None):
     if stat_funcs is None:
         stat_funcs = [
+            # lambda x: np.sqrt(np.average(np.power(x, 2), axis=1))
+            lambda x: np.average(np.abs(x), axis=1)
+        ]
+    elif stat_funcs == 'rmse':
+        stat_funcs = [
             lambda x: np.sqrt(np.average(np.power(x, 2), axis=1))
+            # lambda x: np.average(np.abs(x), axis=1)
+        ]
+    elif stat_funcs == 'mae':
+        stat_funcs = [
+            # lambda x: np.sqrt(np.average(np.power(x, 2), axis=1))
+            lambda x: np.average(np.abs(x), axis=1)
         ]
     ix_start = 0
     subbands = []
