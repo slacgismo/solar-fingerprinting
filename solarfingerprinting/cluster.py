@@ -5,6 +5,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from pathlib import Path
 from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
 from time import time
@@ -175,21 +176,21 @@ class ClusterAnalysis():
         elif normalize == 'external':
             import os
             import pickle
-            filepath = __file__.split('/')[:-1]
+            filepath = Path(__file__).parent
             if stat_funcs == 'rmse':
-                fn1 = os.path.join('/', *filepath,
-                                  'fixtures/saved_rooftop_data_scaler1_rmse.pkl')
-                fn2 = os.path.join('/', *filepath,
-                                   'fixtures/saved_rooftop_data_scaler2_rmse.pkl')
+                fn1 = (filepath / 'fixtures'
+                       / 'fixtures/saved_rooftop_data_scaler1_rmse.pkl')
+                fn2 = (filepath / 'fixtures'
+                       / 'fixtures/saved_rooftop_data_scaler2_rmse.pkl')
                 with open(fn1, 'rb') as f:
                     save_dict1 = pickle.load(f)
                 with open(fn2, 'rb') as f:
                     save_dict2 = pickle.load(f)
             elif stat_funcs == 'mae':
-                fn1 = os.path.join('/', *filepath,
-                                  'fixtures/saved_rooftop_data_scaler1_mae.pkl')
-                fn2 = os.path.join('/', *filepath,
-                                   'fixtures/saved_rooftop_data_scaler2_mae.pkl')
+                fn1 = (filepath / 'fixtures'
+                       / 'fixtures/saved_rooftop_data_scaler1_mae.pkl')
+                fn2 = (filepath / 'fixtures'
+                       / 'fixtures/saved_rooftop_data_scaler2_mae.pkl')
                 with open(fn1, 'rb') as f:
                     save_dict1 = pickle.load(f)
                 with open(fn2, 'rb') as f:

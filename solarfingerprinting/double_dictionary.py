@@ -8,9 +8,14 @@ matrices.
 import numpy as np
 import pywt
 import os
+from pathlib import Path
 
-filepath = __file__.split('/')[:-1]
-ENVELOPE = np.load(os.path.join('/', *filepath, 'fixtures', 'envelope.npy'))
+filepath = Path(__file__).parent
+file_open = filepath / 'fixtures' / 'envelope.npy'
+ENVELOPE = np.load(file_open)
+os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         'fixtures', 'envelope.npy'))
 WVLT = pywt.Wavelet('sym2').wavefun
 
 def make_dictionaries(envelope=None, max_n=5, wavefun=WVLT, J=10,
