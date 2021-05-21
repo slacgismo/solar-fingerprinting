@@ -35,12 +35,13 @@ class ClusterAnalysis():
                     msg = 'Auto-run of DataHandler pipeline failed!'
                     return
             self.data = self.dh.filled_data_matrix[:, self.dh.daily_flags.clear]
-            self.normed_data = self.normalize_data(
+            self.normed_data, self.ss_obj_ = self.normalize_data(
                 detect_sunup_matrix=detect_sunup_matrix
             )
         elif normed_data is not None:
             self.dh = None
             self.data = None
+            self.ss_obj_ = None
             self.normed_data = normed_data
         if envelope == 'saved':
             env = None
@@ -117,111 +118,6 @@ class ClusterAnalysis():
         self.labels[self.outliers == -1] = -2
         self.labels[self.outliers == 1] = clstr.labels_
 
-    def view_clusters(self, method='tsne', dim=2, groups=None, x_mark=None, **kwargs):
-        if method == 'tsne':
-            alg = TSNE(n_components=dim, **kwargs)
-        elif method == 'pca':
-            alg = PCA(n_components=dim)
-        view = alg.fit_transform(self.features)
-        fig = plt.figure()
-        if dim == 3:
-            ax = plt.axes(projection="3d")
-        else:
-            ax = plt.gca()
-        if groups is None:
-            ax.scatter(*view.T, marker='.')
-        elif groups == 'outliers':
-            for v in (1, -1):
-                s = self.outliers == v
-                ax.scatter(*view[s].T, marker='.', label=v)
-            plt.legend()
-        elif groups == 'clusters':
-            for v in set(self.labels):
-                s = self.labels == v
-                if v == x_mark:
-                    ax.scatter(*view[s].T, marker='x', label=v)
-                else:
-                    ax.scatter(*view[s].T, marker='.', label=v)
-            plt.legend()
-        ax.set_xlabel('Comp_1')
-        ax.set_ylabel('Comp_2')
-        if dim == 3:
-            ax.set_zlabel('Comp_3')
-        return fig
-
-    def plot_clusters_time_domain(self, ncols=3):
-        nrows =int(np.ceil(len(set(self.labels)) / ncols))
-        figsize = (2.5 * ncols, 2.5 * nrows)
-        fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
-        labels = list(set(self.labels))
-        counter = 0
-        for i in range(3):
-            for j in range(3):
-                try:
-                    self.plot_normed_signals_in_cluster(labels[counter],
-                                                        axis=ax[i, j])
-                    ax[i, j].set_title(
-                        'Cluster {}'.format(int(labels[counter])))
-                except:
-                    pass
-                counter += 1
-        plt.tight_layout()
-
-    def plot_cluster_labels_in_time(self, show_outliers=False):
-        if self.dh is not None:
-            xs = self.dh.day_index[self.dh.daily_flags.clear]
-        else:
-            xs = np.arange(len(self.daily_distance))
-        fig = plt.figure()
-        if show_outliers:
-            plt.plot(xs, self.labels, linewidth=1, marker='.')
-        else:
-            plt.plot(xs[self.labels >= 0], self.labels[self.labels >= 0],
-                     linewidth=1, marker='.')
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.xlabel('Time [days]')
-        plt.ylabel('Cluster Label')
-        return fig
-
-    def plot_normed_signals_in_cluster(self, label, axis=None):
-        slct = self.labels == label
-        if axis is None:
-            fig = plt.figure()
-            axis = plt.gca()
-            return_fig = True
-        else:
-            return_fig = False
-        subset = self.normed_data[:, slct]
-        axis.fill_between(np.arange(2 ** 10),
-                         np.percentile(subset, 97.5, axis=1),
-                         np.percentile(subset, 2.5, axis=1),
-                         color='orange', alpha=0.3)
-        axis.plot(np.median(subset, axis=1), linewidth=1, color='blue',
-                 alpha=0.5)
-        if return_fig:
-            return fig
-        else:
-            return
-
-    def plot_daily_summary(self):
-        fig = plt.figure()
-        if self.dh is not None:
-            xs = self.dh.day_index[self.dh.daily_flags.clear]
-        else:
-            xs = np.arange(len(self.daily_distance))
-        s_tot = self.daily_distance
-        plt.plot(xs[self.outliers == 1], s_tot[self.outliers == 1], linewidth=1,
-                 marker='.', alpha=0.5, label='daily shade metric')
-        plt.plot(xs[self.outliers == -1], s_tot[self.outliers == -1], ls='none',
-                 marker='.', alpha=0.5, label='detected outliers')
-        plt.xticks(rotation=45)
-        plt.legend()
-        plt.xlabel('Time [days]')
-        plt.ylabel('Shade Metric')
-        plt.tight_layout()
-        return fig
-
     def normalize_data(self, detect_sunup_matrix='raw'):
         dh = self.dh
         ss = SunriseSunset()
@@ -232,9 +128,10 @@ class ClusterAnalysis():
         else:
             print("Valid options for 'detect_sunup_matrix' are 'raw' and 'filled'")
         mask = ss.sunup_mask_estimated[:, dh.daily_flags.clear]
+        self.trim_mask = np.copy(mask)
         data = self.data
         normed_data = batch_process(data, mask)
-        return normed_data
+        return normed_data, ss
 
     def signal_separation(self, verbose=True):
         normed_data = self.normed_data
@@ -331,7 +228,7 @@ class ClusterAnalysis():
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
         ax[0, 0].plot(signal, label='normalized signal', linewidth=1)
         ax[0, 0].plot(smooth_basis_fit, linewidth=1, label='smooth basis')
-        ax[0, 0].plot(complete_basis_fit, linewidth=1,
+        ax[0, 0].plot(complete_basis_fit, linewidth=2, ls=':',
                       label='both bases')
         ax[0, 0].set_title('Time Domain')
         ax[0, 1].stem(self.features[day_ix], use_line_collection=True)
@@ -343,6 +240,7 @@ class ClusterAnalysis():
         ax[1, 1].stem(th2, use_line_collection=True)
         ax[1, 1].set_title('Sparse Wavelet Basis Representation')
         ax[0, 0].legend()
+        plt.tight_layout()
         plt.show()
 
     def inspect_days(self, figsize=(10, 8)):
@@ -361,4 +259,113 @@ class ClusterAnalysis():
             fig = plt.figure()
             plt.imshow(data, aspect='auto', interpolation='none',
                        cmap='cividis')
+        return fig
+
+    def view_clusters(self, method='tsne', dim=2, groups=None, x_mark=None, **kwargs):
+        if method == 'tsne':
+            alg = TSNE(n_components=dim, **kwargs)
+        elif method == 'pca':
+            alg = PCA(n_components=dim)
+        view = alg.fit_transform(self.features)
+        fig = plt.figure()
+        if dim == 3:
+            ax = plt.axes(projection="3d")
+        else:
+            ax = plt.gca()
+        if groups is None:
+            ax.scatter(*view.T, marker='.')
+        elif groups == 'outliers':
+            for v in (1, -1):
+                s = self.outliers == v
+                ax.scatter(*view[s].T, marker='.', label=v)
+            plt.legend()
+        elif groups == 'clusters':
+            for v in set(self.labels):
+                s = self.labels == v
+                if v == x_mark:
+                    ax.scatter(*view[s].T, marker='x', label=v)
+                else:
+                    ax.scatter(*view[s].T, marker='.', label=v)
+            plt.legend()
+        ax.set_xlabel('Comp_1')
+        ax.set_ylabel('Comp_2')
+        if dim == 3:
+            ax.set_zlabel('Comp_3')
+        return fig
+
+    def plot_clusters_time_domain(self, ncols=3):
+        nrows =int(np.ceil(len(set(self.labels)) / ncols))
+        figsize = (2.5 * ncols, 2.5 * nrows)
+        fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+        labels = list(set(self.labels))
+        counter = 0
+        for i in range(nrows):
+            for j in range(ncols):
+                try:
+                    self.plot_normed_signals_in_cluster(labels[counter],
+                                                        axis=ax[i, j])
+                    ax[i, j].set_title(
+                        'Cluster {}'.format(int(labels[counter])))
+                    ax[i, j].set_xticks([])
+                    ax[i, j].set_yticks([])
+                except:
+                    ax[i, j].imshow(np.ones((5, 5)), vmin=0, vmax=1, cmap='gray')
+                    ax[i, j].set_xticks([])
+                    ax[i, j].set_yticks([])
+                counter += 1
+        plt.tight_layout()
+
+    def plot_cluster_labels_in_time(self, show_outliers=False):
+        if self.dh is not None:
+            xs = self.dh.day_index[self.dh.daily_flags.clear]
+        else:
+            xs = np.arange(len(self.daily_distance))
+        fig = plt.figure()
+        if show_outliers:
+            plt.plot(xs, self.labels, linewidth=1, marker='.')
+        else:
+            plt.plot(xs[self.labels >= 0], self.labels[self.labels >= 0],
+                     linewidth=1, marker='.')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.xlabel('Time [days]')
+        plt.ylabel('Cluster Label')
+        return fig
+
+    def plot_normed_signals_in_cluster(self, label, axis=None):
+        slct = self.labels == label
+        if axis is None:
+            fig = plt.figure()
+            axis = plt.gca()
+            return_fig = True
+        else:
+            return_fig = False
+        subset = self.normed_data[:, slct]
+        axis.fill_between(np.arange(2 ** 10),
+                         np.percentile(subset, 97.5, axis=1),
+                         np.percentile(subset, 2.5, axis=1),
+                         color='orange', alpha=0.3)
+        axis.plot(np.median(subset, axis=1), linewidth=1, color='blue',
+                 alpha=0.5)
+        if return_fig:
+            return fig
+        else:
+            return
+
+    def plot_daily_summary(self, figsize=(8, 6)):
+        fig = plt.figure(figsize=figsize)
+        if self.dh is not None:
+            xs = self.dh.day_index[self.dh.daily_flags.clear]
+        else:
+            xs = np.arange(len(self.daily_distance))
+        s_tot = self.daily_distance
+        plt.plot(xs[self.outliers == 1], s_tot[self.outliers == 1], linewidth=1,
+                 marker='.', alpha=0.5, label='daily shade metric')
+        plt.plot(xs[self.outliers == -1], s_tot[self.outliers == -1], ls='none',
+                 marker='.', alpha=0.5, label='detected outliers')
+        plt.xticks(rotation=45)
+        plt.legend()
+        plt.xlabel('Time [days]')
+        plt.ylabel('Shade Metric')
+        plt.tight_layout()
         return fig

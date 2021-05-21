@@ -4,7 +4,6 @@
 
 import numpy as np
 from scipy.interpolate import interp1d
-from solardatatools.algorithms import SunriseSunset
 
 def batch_process(data, mask, power=10):
     """ Process an entire PV power matrix at once
