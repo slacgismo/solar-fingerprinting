@@ -10,7 +10,7 @@ import pywt
 import os
 
 filepath = __file__.split('/')[:-1]
-ENVELOPE = np.load(os.path.join('/', *filepath, 'fixtures/envelope.npy'))
+ENVELOPE = np.load(os.path.join('/', *filepath, 'fixtures', 'envelope.npy'))
 WVLT = pywt.Wavelet('sym2').wavefun
 
 def make_dictionaries(envelope=None, max_n=5, wavefun=WVLT, J=10,
